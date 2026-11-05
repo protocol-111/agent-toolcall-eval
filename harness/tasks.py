@@ -73,6 +73,47 @@ def build_condition(task: Task, condition: str) -> dict[str, Any]:
     return {"system": system, "messages": messages, "tools": tools}
 
 
+def build_depth_turns(n: int) -> list[tuple[str, str]]:
+    """n user asks for a multi-turn loop, cycling the base tasks.
+
+    Returns (request_text, expected_tool) per turn. Numbers vary per turn so a
+    model can't cache an answer; the expected tool is what a correct turn calls.
+    """
+    turns: list[tuple[str, str]] = []
+    for i in range(n):
+        base = TASKS[i % len(TASKS)]
+        if base.task_id == "add":
+            req = f"What is {100 + i} plus {200 + i}? Use the tool."
+        elif base.task_id == "lookup":
+            req = f"Look up the owner of record R-00{(i % 3) + 1}."
+        else:
+            req = f"Give me November {((i % 27) + 1)}th 2026 as an ISO date."
+        turns.append((req, base.expected_tool))
+    return turns
+
+
+def make_padded_tools(n_tools: int) -> list[dict[str, Any]]:
+    """The real tools plus dummy tools, to study tool-count load.
+
+    The three real tools are always present; dummies pad the registered set up
+    to n_tools so the model must still select the right one among many.
+    """
+    tools = list(TOOL_SCHEMAS)
+    k = 0
+    while len(tools) < n_tools:
+        tools.append({
+            "name": f"noop_{k}",
+            "description": f"Placeholder tool {k}; do not use unless asked.",
+            "input_schema": {
+                "type": "object",
+                "properties": {"x": {"type": "string"}},
+                "required": [],
+            },
+        })
+        k += 1
+    return tools
+
+
 def score(task: Task, result) -> dict[str, Any]:
     """Score one result against the task's expected call."""
     correct_tool = result.tool_name == task.expected_tool

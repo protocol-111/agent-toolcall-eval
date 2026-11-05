@@ -76,6 +76,27 @@ _[Your interpretation, in your own words. Questions worth addressing:]_
   differ. A natural extension is a factorial design that varies each context
   dimension independently.
 
+## 5a. Depth axis: multi-turn agentic loop
+
+The single-turn study (above) found no isolated→full-harness degradation on the
+toy tasks for any model tested. This is reported as a null result: under light,
+single-turn load, structured tool-call emission is robust. The original
+25-turn collapse was not reproduced because the single-turn design cannot
+exercise conversation depth — a turn-25 effect is unreachable in a one-turn
+test.
+
+`harness.depth_eval` runs a real multi-turn agentic loop and measures emission
+rate by turn index, sweeping two stressors independently: conversation depth
+(`--depth`) and registered tool count (`--n-tools`). The research questions to
+develop from your own runs:
+
+- Is there a turn depth at which emission falls, and does it differ by model?
+  (Report the emission-by-turn curve and the mean first-failure turn.)
+- Does tool count shift that threshold? (Sweep `--n-tools` at fixed depth.)
+- Do your Strix-tuned local models collapse earlier than frontier models, and
+  does the reduced-harness profile you already use delay the collapse? This
+  connects the harness to the behavior you observed in production.
+
 ## 5a. Second axis: execution fencing and honesty under tool failure
 
 The harness can execute each emitted tool call inside an egress-fenced sandbox

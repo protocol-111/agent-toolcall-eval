@@ -45,6 +45,24 @@ export LOCAL_OPENAI_BASE_URL=http://localhost:8000/v1
 python -m harness.run_eval --config configs/models.yaml --trials 20 --out results/run.jsonl
 ```
 
+## Multi-turn depth sweep (the turn-depth stressor)
+
+The single-turn study above found no degradation on easy tasks. The original
+observation — zero tool calls across 25 *consecutive* turns — lives in a deep
+agentic loop, which a single-turn test cannot reproduce. This sweep runs a real
+loop of `--depth` turns (the model's own tool calls and their results
+accumulate in context) with `--n-tools` tools registered, and reports emission
+rate **by turn index** plus the mean turn at which emission first fails.
+
+```bash
+python -m harness.depth_eval --config configs/mock.yaml \
+    --depth 20 --n-tools 10 --trials 5 --out results/depth.jsonl
+```
+
+Two knobs to scale the stressor until emission breaks, which localizes the
+cause: `--depth` (conversation depth) and `--n-tools` (how many tools the model
+must choose among). Sweep each while holding the other fixed.
+
 ## Egress-fenced tool execution (sandbox)
 
 Tool calls can be executed inside a "sacrificial box" style fence: a child

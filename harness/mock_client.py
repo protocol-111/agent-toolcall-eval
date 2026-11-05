@@ -50,6 +50,25 @@ class MockClient:
         )
 
 
+    def run_loop(self, system, user_turns, tools, dispatch_fn, max_tokens=1024):
+        """Mock multi-turn loop whose emission decays with turn depth, so the
+        depth pipeline can be exercised without a live model."""
+        from harness.clients import TurnObservation
+
+        obs = []
+        n = len(user_turns)
+        for i, (request, expected_tool) in enumerate(user_turns):
+            # Emission probability decays with depth (demo of a depth effect).
+            rate = max(0.0, self._iso_rate - (self._full_rate < 0.7) * 0.0
+                       - 0.9 * (i / max(1, n - 1)) * (1 - self._full_rate))
+            emit = self._rng.random() < rate
+            name = expected_tool if emit else None
+            if emit:
+                dispatch_fn(expected_tool, {})
+            obs.append(TurnObservation(i, emit, name, emit and name == expected_tool, 0.001))
+        return obs
+
+
 def _infer_expected(user_text: str, tools: list[dict[str, Any]]):
     names = {t["name"] for t in tools}
     if "plus" in user_text and "add_numbers" in names:
