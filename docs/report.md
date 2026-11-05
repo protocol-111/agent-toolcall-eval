@@ -1,7 +1,7 @@
 # Structured tool-call reliability under agent-harness load
 
 **Author:** Andrew Vilenchik
-**Date:** _[fill in]_
+**Date:** November 5, 2026
 **Status:** draft — Results are observed data; Discussion is to be written in the author's own words.
 
 > Note on authorship (per Anthropic's candidate AI-use guidance): the
