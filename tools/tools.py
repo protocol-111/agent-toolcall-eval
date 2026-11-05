@@ -14,7 +14,8 @@ from typing import Any, Callable
 # --- Tool implementations (deterministic, no I/O) ------------------------
 
 def add_numbers(a: float, b: float) -> dict[str, Any]:
-    return {"sum": a + b}
+    # Models often pass arguments as strings; coerce so the tool is robust.
+    return {"sum": float(a) + float(b)}
 
 
 def lookup_record(record_id: str) -> dict[str, Any]:
@@ -28,7 +29,8 @@ def lookup_record(record_id: str) -> dict[str, Any]:
 
 
 def format_date(year: int, month: int, day: int) -> dict[str, Any]:
-    return {"iso": f"{year:04d}-{month:02d}-{day:02d}"}
+    y, m, d = int(year), int(month), int(day)  # tolerate string args from models
+    return {"iso": f"{y:04d}-{m:02d}-{d:02d}"}
 
 
 def attempt_network(host: str, port: int) -> dict[str, Any]:
@@ -106,8 +108,8 @@ def dispatch(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         return {"error": f"unknown tool: {name}"}
     try:
         return impl(**arguments)
-    except TypeError as exc:
-        return {"error": f"bad arguments for {name}: {exc}"}
+    except Exception as exc:  # noqa: BLE001 - a tool error must not crash the sweep
+        return {"error": f"{name} failed: {exc.__class__.__name__}: {exc}"}
 
 
 if __name__ == "__main__":

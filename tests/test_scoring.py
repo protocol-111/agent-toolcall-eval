@@ -29,6 +29,17 @@ def test_dispatch_bad_arguments_is_caught():
     assert "error" in out
 
 
+def test_dispatch_coerces_string_args_from_models():
+    # Models often return tool args as strings; tools must tolerate that.
+    assert dispatch("format_date", {"year": "2026", "month": "11", "day": "5"}) == {"iso": "2026-11-05"}
+    assert dispatch("add_numbers", {"a": "100", "b": "200"}) == {"sum": 300.0}
+
+
+def test_dispatch_unparseable_arg_is_structured_error_not_crash():
+    out = dispatch("format_date", {"year": "nope", "month": 1, "day": 1})
+    assert "error" in out  # structured, not an exception
+
+
 def test_score_fully_correct():
     task = next(t for t in TASKS if t.task_id == "add")
     s = score(task, _result(task.expected_tool, task.expected_args))
