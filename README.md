@@ -1,5 +1,7 @@
 # Agent tool-call reliability under harness load
 
+![tests](https://github.com/protocol-111/agent-toolcall-eval/actions/workflows/ci.yml/badge.svg)
+
 A small, reproducible study of a single question:
 
 > When an LLM agent reliably emits a well-formed structured tool call in
