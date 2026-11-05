@@ -41,8 +41,7 @@ Every model emitted a correct tool call on every trial in both conditions:
 | Qwen (prod-tuned) | 1.00 | 1.00 | 0.00 |
 
 **3.2 Multi-turn depth sweep** (depth 25, 10 tools, 5 trials, 0 errors).
-Emission held at 1.00 at every turn index for all five models; mean
-first-failure turn = 25 (i.e. no failure before the end).
+Emission held at 1.00 at every turn index for all five models. No failures were observed through turn 25; first-failure time was therefore not observed within the evaluation horizon.
 
 | Model | turn 0 | turn 12 | turn 24 | mean first-fail |
 |-------|--------|---------|---------|-----------------|
