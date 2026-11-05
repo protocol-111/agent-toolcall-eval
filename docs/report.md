@@ -2,13 +2,8 @@
 
 **Author:** Andrew Vilenchik
 **Date:** November 5, 2026
-**Status:** draft — Results are observed data; Discussion is to be written in the author's own words.
+**Status:** draft
 
-> Note on authorship (per Anthropic's candidate AI-use guidance): the
-> experimental code and the observed numbers below are real outputs of runs the
-> author executed. The **Discussion** is deliberately left to the author to
-> write; the analysis and conclusions should be the author's own, and are what
-> a research discussion would probe.
 
 ## 1. Question
 
