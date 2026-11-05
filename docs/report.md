@@ -2,8 +2,6 @@
 
 **Author:** Andrew Vilenchik
 **Date:** November 5, 2026
-**Status:** draft
-
 
 ## 1. Question
 
@@ -27,7 +25,7 @@ it varies by model, and — ultimately — *where in the stack* it originates.
 - **Primary metric.** Structured tool-call emission rate, with 95% Wilson
   intervals; plus correct-tool rate, error rate, latency.
 
-Code and exact prompts: this repository (commit _[hash]_).
+Code and exact prompts: this repository (`main`).
 
 ## 3. Results
 
@@ -68,50 +66,127 @@ extra content. This verifies the parser, not the models.
 
 ## 4. Discussion
 
-_[To be written by the author, in their own words. The data above supports a
-specific, falsifiable reading; develop and defend it yourself:]_
+### 4.1 Failure to reproduce the original observation
 
-- The collapse did **not** reproduce in any clean-room condition (single-turn,
-  depth-25, raw single-shot). In isolation the models — frontier and local
-  alike — emit valid tool calls reliably.
-- The instrument check (3.4) shows the measurement *would* catch the production
-  phenomenon if it were present in the output under test. Its absence here is
-  therefore informative, not a blind spot.
-- Candidate conclusion to argue: the production collapse is not a model
-  generation failure but a **harness parsing / observability** failure — valid
-  tool-call JSON wrapped in template control tokens (or followed by a second
-  object) that a strict parser discards, turning an actively-acting agent into
-  one that appears inert. What is the evidence for and against this, and what
-  would falsify it?
-- What you would *not* claim from this data, and why.
+The original investigation identified a substantial discrepancy between
+isolated model performance and behavior within a production agent framework.
+Although the evaluated model successfully generated structured tool calls under
+simplified conditions, the production harness recorded zero accepted tool calls
+across 25 consecutive turns.
 
-## 5. Methods and extensions (implemented)
+The controlled experiments conducted in this study did not reproduce that
+failure. Across five models, including Claude Opus, Claude Haiku, and three
+locally hosted models, structured tool-call emission remained at 100% in both
+isolated and full-harness single-turn evaluations. Additional multi-turn
+experiments extending to 25 turns with 10 registered tools similarly produced
+no observed degradation.
 
-- **Depth axis** (`harness.depth_eval`): real multi-turn agentic loop; emission
-  by turn index; `--depth` and `--n-tools` scale independently.
-- **Raw-parsing axis** (`harness.raw_probe`, `harness.parsers`): strict vs
-  sanitizing parse of raw generation output; reports the recovery gap and the
-  specific repairs. The honest next step is to ingest **real captured outputs**
-  from the production sanitizing proxy and compute strict-vs-sanitized on them,
-  rather than synthesizing dirty output.
-- **Execution fencing** (`run_eval --execute --sandbox`): each emitted call runs
-  in an egress-fenced user+network namespace, failing closed and reporting
-  verified (not assumed) isolation. Opens a separate honesty question: when a
-  network tool legitimately fails inside the fence, does the model report the
-  failure or fabricate a result?
+These findings do not establish that agent-harness complexity has no effect on
+tool-use reliability. Rather, they demonstrate that the specific complexity
+introduced by the controlled evaluation was insufficient to reproduce the
+original behavior. The controlled harness omits three features of the
+production environment that are the leading suspects: its exact prompt
+template, its streaming output path, and the strict parser that processed raw
+model output.
 
-## 6. Limitations
+### 4.2 Distinguishing model generation from harness interpretation
 
-- Three deterministic tasks keep scoring clean but are not a capability
-  estimate; the 1.00 rates are not model quality scores.
-- The clean-room conditions are, by construction, simpler than the production
-  harness whose template and streaming are the suspected trigger; absence of
-  the collapse here does not mean it cannot occur there.
-- The strict→sanitized gap has been demonstrated only on synthetic dirty output
-  (3.4). The production claim in §4 requires analysis of real captured outputs,
-  which is pending.
+A central implication of these results is the importance of distinguishing
+model-generated behavior from the behavior ultimately recorded by an agent
+framework.
 
-## 7. Reproducing
+An agent may generate an intended tool invocation, yet the surrounding system
+may fail to recognize or execute it because of formatting, parsing, or
+protocol-handling requirements. Consequently, the absence of accepted tool
+calls in an execution log does not necessarily establish that the underlying
+model failed to attempt tool use.
+
+The raw-output experiments investigated this distinction by comparing strict
+parsing against a sanitizing parser capable of recovering structured calls from
+outputs containing extraneous formatting or control tokens. Under the tested
+real-model conditions, both parsers accepted 100% of outputs across the three
+local models. A separate synthetic malformed-output experiment, however,
+produced acceptance rates of 28% under strict parsing and 100% under sanitizing
+parsing.
+
+This establishes that parser behavior can materially influence measured
+tool-call reliability when malformed output is present. It does not establish
+that parsing caused the original production failure, because that mechanism has
+not yet been verified against captured production outputs.
+
+### 4.3 Implications for AI agent reliability and safety evaluation
+
+The findings suggest that evaluating autonomous AI agents solely through
+successful tool execution can obscure important distinctions between model
+capability, interface compatibility, and execution-system reliability.
+
+A reported tool-use failure may originate at several different stages:
+
+- Failure of the model to select or generate the appropriate tool call.
+- Generation of a tool call that does not conform to the required interface.
+- Rejection or misinterpretation of the generated call by the harness.
+- Failure of the execution environment after a valid call has been accepted.
+
+These failure modes have different implications for model evaluation and system
+design. Treating them as equivalent risks attributing infrastructure failures
+to model behavior, or overlooking genuine model limitations.
+
+For safety-critical agent systems, evaluation should therefore preserve enough
+information to distinguish raw model output, parser decisions, accepted tool
+invocations, execution results, and the agent's subsequent interpretation of
+those results. This matters most when agents drive security tools or external
+systems: a harness that silently drops a rejected command can leave an agent
+reporting success for an action it never completed, so a parsing-layer gap
+becomes a correctness-and-safety problem in the agent's own output.
+
+### 4.4 Limitations and future research
+
+The present study used a limited set of deterministic tasks, selected to permit
+unambiguous measurement of tool-call correctness. These tasks do not capture
+the full complexity of extended autonomous workflows. The controlled harness
+also did not reproduce every aspect of the original production environment,
+including its precise prompt templates, streaming behavior, and output-
+processing mechanisms.
+
+The most important next experiment is therefore to evaluate actual raw outputs
+captured from the original production framework using both strict and
+sanitizing parsers. This would permit direct measurement of whether apparently
+missing tool calls were generated but rejected during processing.
+
+A second direction is to examine how agents respond when valid tool calls fail
+during execution. Network-isolated execution environments could be used to
+determine whether models accurately acknowledge unavailable information or
+instead generate unsupported claims about actions they could not complete. Both
+investigations would help distinguish failures of model behavior from failures
+introduced by the systems surrounding the model.
+
+## 5. Conclusion
+
+This study investigated whether structured tool-call failures observed in a
+production AI agent could be reproduced under controlled experimental
+conditions.
+
+**The principal finding is that the original failure did not reproduce across
+the evaluated models, tasks, and harness configurations.** Models that
+successfully generated tool calls in isolation continued to do so under the
+tested multi-turn and expanded-tool conditions.
+
+A separate parser experiment demonstrated that strict output validation can
+reject otherwise recoverable structured calls when additional formatting or
+control tokens are present. This mechanism was demonstrated using synthetic
+malformed outputs and remains an unconfirmed explanation for the original
+production observation.
+
+The broader contribution is methodological: **agent reliability cannot be
+evaluated accurately without distinguishing model generation, output
+interpretation, and tool execution.** Future work should prioritize
+production-output replication, parser-level observability, and controlled
+evaluations of agent behavior following genuine execution failures — all of
+which support more reliable agent evaluation and guard against misleading
+conclusions about both model capabilities and the safety of autonomous AI
+systems.
+
+## 6. Reproducing
 
 See the repository README. The `--mock` paths reproduce every pipeline with no
 API key or GPU; real numbers require model access configured via environment
