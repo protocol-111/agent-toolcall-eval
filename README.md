@@ -63,6 +63,31 @@ Two knobs to scale the stressor until emission breaks, which localizes the
 cause: `--depth` (conversation depth) and `--n-tools` (how many tools the model
 must choose among). Sweep each while holding the other fixed.
 
+## Raw-output probe: strict vs sanitizing parser (the real mechanism)
+
+The depth sweep found no collapse, because it calls models through the
+OpenAI-compatible endpoint, which pre-normalizes tool calls. The production
+failure was upstream of that: the model emitted tool-call JSON wrapped in stray
+control tokens (`<|im_end|>`, `<|tool_call_end|>`) or followed by a second JSON
+object, and a strict harness parser rejected it — so an actively-acting agent
+recorded zero tool calls.
+
+This probe hits the model's RAW generation endpoint and parses each output two
+ways — strict (whole output must be one clean JSON call) and sanitizing (strip
+control tokens/fences, take the first balanced JSON object) — reporting both
+emission rates. The gap is what a sanitizing proxy recovers.
+
+```bash
+python -m harness.raw_probe --mock --trials 40 --out results/raw.jsonl   # no network
+python -m harness.raw_probe --config configs/models.yaml --trials 10 \
+    --out results/raw.jsonl                                              # real local models
+```
+
+Reads Ollama's native `/api/generate` (host from `OLLAMA_URL`, or derived from
+`LOCAL_OPENAI_BASE_URL`). Anthropic models are skipped — native tool use emits
+no raw text to parse. The result reframes the finding: the collapse is a
+harness **parsing/observability** failure, not model incapacity.
+
 ## Egress-fenced tool execution (sandbox)
 
 Tool calls can be executed inside a "sacrificial box" style fence: a child

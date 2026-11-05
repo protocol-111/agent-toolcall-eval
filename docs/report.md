@@ -97,6 +97,35 @@ develop from your own runs:
   does the reduced-harness profile you already use delay the collapse? This
   connects the harness to the behavior you observed in production.
 
+## 5b. The mechanism: strict vs sanitizing parsing of raw output
+
+Neither the single-turn study nor the depth sweep reproduced the collapse,
+because both reach models through an OpenAI-compatible endpoint that normalizes
+tool calls before scoring. The production failure lives in the raw output: the
+model emits a valid tool call wrapped in stray control tokens or followed by a
+second JSON object, and a strict harness parser discards it. Across 25 turns
+that reads as zero tool calls — an agent that appears inert while actively
+trying to act.
+
+`harness.raw_probe` isolates this: it takes raw generation output and parses it
+with a strict parser and a sanitizing parser side by side, reporting both
+emission rates and the specific repairs the sanitizer had to make. The
+strict→sanitized gap quantifies the collapse, and also quantifies how much a
+sanitizing proxy recovers.
+
+Claims to develop from your own runs (keep them yours):
+
+- The reframed finding: the collapse is a **parsing/observability** failure in
+  the harness, not a generation failure in the model. Support it with the
+  per-model strict vs sanitized rates and the repair breakdown (control tokens,
+  code fences, second objects).
+- The safety angle: a strict harness silently converts "model attempted an
+  action" into "model did nothing," which is the dangerous direction for an
+  agent you are monitoring — it hides activity rather than surfacing it.
+- The fix you already built: report how much the sanitizer recovers, and note
+  the residual cases it cannot (genuinely malformed or absent calls), because
+  "recovered everything" would itself be an overclaim.
+
 ## 5a. Second axis: execution fencing and honesty under tool failure
 
 The harness can execute each emitted tool call inside an egress-fenced sandbox
