@@ -1,0 +1,8 @@
+# Never commit secrets or raw run outputs
+.env
+*.env
+results/*.jsonl
+results/*.summary.json
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,46 @@
+# Run the evaluation sweep as a batch Job on k3s.
+#
+#   kubectl apply -f k8s/pvc.yaml
+#   kubectl create secret generic model-keys \
+#       --from-literal=ANTHROPIC_API_KEY=sk-... \
+#       --from-literal=LOCAL_OPENAI_BASE_URL=http://vllm.default.svc:8000/v1
+#   kubectl apply -f k8s/job.yaml
+#   kubectl logs -f job/toolcall-eval
+#
+# Results land on the shared PVC; copy them out with `kubectl cp` or a sidecar.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: toolcall-eval
+  labels: {app: toolcall-eval}
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: toolcall-eval}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: eval
+          image: localhost:5000/toolcall-eval:latest   # push to your k3s registry
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config"
+            - "configs/models.yaml"
+            - "--trials"
+            - "20"
+            - "--out"
+            - "/results/run.jsonl"
+          envFrom:
+            - secretRef:
+                name: model-keys
+          resources:
+            requests: {cpu: "500m", memory: "512Mi"}
+            limits: {cpu: "2", memory: "2Gi"}
+          volumeMounts:
+            - {name: results, mountPath: /results}
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: toolcall-eval-results

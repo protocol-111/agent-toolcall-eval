@@ -1,0 +1,7 @@
+models:
+  - label: mock-strong
+    backend: mock
+    model: strong
+  - label: mock-weak
+    backend: mock
+    model: weak

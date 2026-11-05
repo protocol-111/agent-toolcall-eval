@@ -1,0 +1,19 @@
+# Models under test. API keys and base URLs come from the environment at run
+# time (ANTHROPIC_API_KEY, LOCAL_OPENAI_BASE_URL, LOCAL_OPENAI_API_KEY) and are
+# never stored here.
+models:
+  - label: claude-opus
+    backend: anthropic
+    model: claude-opus-4-8          # set to a model your API key can access
+
+  - label: claude-haiku
+    backend: anthropic
+    model: claude-haiku-4-8
+
+  - label: local-qwen
+    backend: openai_compat          # served by vLLM / Ollama / LiteLLM
+    model: qwen2.5-7b-instruct
+
+  - label: local-llama
+    backend: openai_compat
+    model: llama-3.1-8b-instruct
