@@ -7,10 +7,26 @@ A small, reproducible study of a single question:
 > agent harness — a long operator prompt, many registered tools, and prior
 > conversation turns?
 
-This rebuilds, as a controlled experiment, an earlier observation of **zero
-structured tool calls across 25 full-harness turns despite successful isolated
-tool-call tests**. Here the effect is measured across models and tasks with
+This rebuilds, as a controlled experiment, an earlier production observation of
+**zero accepted tool calls across 25 full-harness turns despite successful
+isolated tool-call tests**. The effect is measured across models and tasks with
 repeated trials and confidence intervals rather than a single run.
+
+## Findings so far
+
+- **In isolation, models are robust.** Across single-turn, 25-turn depth, and
+  raw single-shot conditions, Claude (Opus/Haiku) and three local models all
+  emit valid tool calls at ~1.00 — the collapse does **not** reproduce in any
+  clean-room condition.
+- **The likely mechanism is parsing, not generation.** A strict harness parser
+  discards valid tool-call JSON that carries stray control tokens or a trailing
+  second object, so an actively-acting agent records zero calls. The
+  raw-output probe demonstrates the instrument catches this when present
+  (strict 0.28 → sanitizing 1.00 on synthetic dirty output).
+- **Status:** the remaining step is to run the strict-vs-sanitizing analysis on
+  *real* captured outputs from a production harness, rather than synthetic ones.
+  See [`docs/report.md`](docs/report.md) for the full write-up and the open
+  question. This repo is kept as a reference for that work.
 
 ## Design
 
