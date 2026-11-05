@@ -45,6 +45,38 @@ export LOCAL_OPENAI_BASE_URL=http://localhost:8000/v1
 python -m harness.run_eval --config configs/models.yaml --trials 20 --out results/run.jsonl
 ```
 
+## Egress-fenced tool execution (sandbox)
+
+Tool calls can be executed inside a "sacrificial box" style fence: a child
+process in its own user+network namespace (rootless `unshare -rn`), under
+CPU/memory/wall-clock limits, with no outbound network. This models running
+agent tools where execution is isolated from everything else.
+
+```bash
+python -m harness.sandbox          # self-check: proves the fence blocks outbound
+python -m harness.run_eval --config configs/mock.yaml --trials 10 \
+    --out results/run.jsonl --execute --sandbox   # fence each emitted call
+```
+
+Two deliberate design choices, both load-bearing:
+
+- **Fail closed.** With `--sandbox`, if the namespace cannot be created the run
+  *refuses* rather than silently executing a tool unfenced.
+- **Verified, not assumed.** Each run records `net_isolation_enforced` as a
+  checked fact, and `harness.sandbox.verify_fence()` actually attempts an
+  outbound connection and confirms it is blocked. The harness never reports an
+  isolation it did not achieve.
+
+This also sets up a second study: when a network-dependent tool legitimately
+fails inside the fence, does the model report the failure honestly or fabricate
+a result? That ties the harness-load finding to grounding/honesty behavior.
+
+> Note: in this project's cloud container, outbound egress is already
+> restricted, so the *unsandboxed* baseline also cannot reach an arbitrary host
+> — the reach-vs-blocked contrast is only visible on a network where the target
+> host is actually reachable. The fence's effect (namespace created, outbound
+> blocked) is still verified independently.
+
 ## On k3s
 
 Built to run as a batch `Job` on a k3s cluster; see [`k8s/`](k8s/). Results are

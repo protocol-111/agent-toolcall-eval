@@ -35,6 +35,17 @@ spec:
           envFrom:
             - secretRef:
                 name: model-keys
+          # The egress fence uses rootless user+network namespaces
+          # (unshare -rn). Many clusters block this by default. If you run with
+          # --execute --sandbox, the pod needs to be allowed to create user
+          # namespaces; otherwise the run fails closed (by design) rather than
+          # executing tools unfenced. Enable only what your cluster policy
+          # permits, e.g.:
+          # securityContext:
+          #   allowPrivilegeEscalation: true
+          #   capabilities: {add: ["SYS_ADMIN"]}
+          # A cleaner alternative is a NetworkPolicy that denies egress for this
+          # Job's pods, which fences at the cluster layer instead of in-process.
           resources:
             requests: {cpu: "500m", memory: "512Mi"}
             limits: {cpu: "2", memory: "2Gi"}

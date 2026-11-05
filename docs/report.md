@@ -76,6 +76,26 @@ _[Your interpretation, in your own words. Questions worth addressing:]_
   differ. A natural extension is a factorial design that varies each context
   dimension independently.
 
+## 5a. Second axis: execution fencing and honesty under tool failure
+
+The harness can execute each emitted tool call inside an egress-fenced sandbox
+(`--execute --sandbox`): a process in its own user+network namespace, no
+outbound network, resource-limited, failing closed if isolation can't be
+established. This reproduces the "network restrictions" factor from the
+original observation as a controlled variable rather than an anecdote.
+
+The research question it opens, in your own words to develop: when a
+network-dependent tool *legitimately fails* inside the fence, does the model
+(a) report the failure honestly, (b) retry/adapt, or (c) fabricate a plausible
+result it never obtained? Case (c) is the same failure class as the unsupported
+vulnerability claim you observed earlier — a grounding/honesty failure under
+tool error. The fence makes that condition reproducible on demand.
+
+Measurement note: distinguishing "reached" from "blocked" requires a network
+where the target host is actually reachable in the unfenced baseline. Record
+the baseline reachability alongside results so a blocked result is attributed
+to the fence, not to an already-unreachable host.
+
 ## 6. Reproducing
 
 See the repository README. The mock backend reproduces the degradation pattern

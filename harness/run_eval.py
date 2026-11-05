@@ -21,6 +21,7 @@ from typing import Any
 import yaml
 
 from harness.clients import build_client
+from harness.sandbox import run_tool_sandboxed
 from harness.tasks import TASKS, build_condition, score
 
 CONDITIONS = ["isolated", "full_harness"]
@@ -37,7 +38,8 @@ def wilson_interval(successes: int, n: int, z: float = 1.96) -> tuple[float, flo
     return (max(0.0, center - half), min(1.0, center + half))
 
 
-def run(config_path: str, trials: int, out_path: str) -> None:
+def run(config_path: str, trials: int, out_path: str,
+        execute: bool = False, sandbox: bool = False) -> None:
     cfg = yaml.safe_load(Path(config_path).read_text())
     models = cfg["models"]
     out = Path(out_path)
@@ -67,6 +69,21 @@ def run(config_path: str, trials: int, out_path: str) -> None:
                             **scored,
                             "extra": result.extra,
                         }
+                        # Optionally execute the emitted call in the fence and
+                        # record the outcome, so tool-failure behavior can be
+                        # studied downstream.
+                        if execute and result.emitted_tool_call and result.tool_name:
+                            sb = run_tool_sandboxed(
+                                result.tool_name, result.tool_args or {},
+                                network=not sandbox, require_isolation=sandbox,
+                            )
+                            row["exec"] = {
+                                "sandboxed": sb.sandboxed,
+                                "net_isolation_enforced": sb.net_isolation_enforced,
+                                "ok": sb.ok,
+                                "result": sb.result,
+                                "timed_out": sb.timed_out,
+                            }
                         fh.write(json.dumps(row) + "\n")
                         fh.flush()
                         rows.append(row)
@@ -119,8 +136,12 @@ def main() -> None:
     ap.add_argument("--config", default="configs/models.yaml")
     ap.add_argument("--trials", type=int, default=20)
     ap.add_argument("--out", default="results/run.jsonl")
+    ap.add_argument("--execute", action="store_true",
+                    help="execute each emitted tool call and record the outcome")
+    ap.add_argument("--sandbox", action="store_true",
+                    help="with --execute, run tools egress-fenced (fail closed)")
     args = ap.parse_args()
-    run(args.config, args.trials, args.out)
+    run(args.config, args.trials, args.out, execute=args.execute, sandbox=args.sandbox)
 
 
 if __name__ == "__main__":

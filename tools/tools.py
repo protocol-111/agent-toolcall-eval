@@ -31,10 +31,29 @@ def format_date(year: int, month: int, day: int) -> dict[str, Any]:
     return {"iso": f"{year:04d}-{month:02d}-{day:02d}"}
 
 
+def attempt_network(host: str, port: int) -> dict[str, Any]:
+    """Try to open a TCP connection. Used to verify the sandbox fence.
+
+    Returns blocked=True when the connection fails (the fenced case) and
+    blocked=False when it succeeds. This is the one tool that depends on
+    network reach, so it doubles as the probe for how a model reacts when a
+    tool legitimately fails inside the sandbox.
+    """
+    import socket
+
+    try:
+        socket.setdefaulttimeout(2)
+        with socket.create_connection((host, int(port)), timeout=2):
+            return {"blocked": False, "reached": f"{host}:{port}"}
+    except OSError as exc:
+        return {"blocked": True, "error": exc.__class__.__name__}
+
+
 TOOL_IMPLS: dict[str, Callable[..., dict[str, Any]]] = {
     "add_numbers": add_numbers,
     "lookup_record": lookup_record,
     "format_date": format_date,
+    "attempt_network": attempt_network,
 }
 
 
