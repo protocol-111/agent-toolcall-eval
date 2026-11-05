@@ -11,6 +11,7 @@ never written to disk or committed.
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from typing import Any
